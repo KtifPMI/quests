@@ -7,10 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0B0F14",
-    "splash": {
-      "backgroundColor": "#0B0F14",
-      "resizeMode": "contain"
-    },
     "ios": {
       "supportsTablet": true
     },
@@ -31,13 +27,22 @@
       "@react-native-community/datetimepicker",
       "expo-font",
       [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0B0F14",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Разрешите доступ к геолокации для поиска квестов рядом с вами",
           "locationAlwaysPermission": "Разрешите доступ к геолокации для поиска квестов",
           "locationWhenInUsePermission": "Разрешите доступ к геолокации для поиска квестов рядом с вами"
         }
-      ]
+      ],
+      "expo-splash-screen"
     ]
   }
 }
