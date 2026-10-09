@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +22,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function WorkScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { profile, user, isOwner, employment, maxAccessLevel } = useAuth();
   const { rooms, quests } = useQuests();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -38,7 +40,7 @@ export default function WorkScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.headerTitle}>Работа</Text>
       </View>
 
@@ -196,7 +198,6 @@ const styles = StyleSheet.create({
   headerBar: {
     backgroundColor: colors.surface,
     padding: spacing.md,
-    paddingTop: spacing.lg + 20,
     ...shadows.header,
   },
   headerTitle: { ...typography.h2, color: colors.text },

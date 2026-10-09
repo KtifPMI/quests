@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, shadows } from '../theme';
 import { useQuests } from '../context/QuestContext';
@@ -22,6 +23,7 @@ const DIFFICULTY_COLORS = { easy: colors.success, medium: colors.warning, hard: 
 
 export default function QuestDetailScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<Route>();
   const { quests, getRoomById } = useQuests();
 
@@ -46,7 +48,10 @@ export default function QuestDetailScreen() {
             <Ionicons name="game-controller" size={60} color={colors.primaryLight} />
           </View>
         )}
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={[styles.backBtn, { top: insets.top + spacing.sm }]}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
       </View>
@@ -62,7 +67,10 @@ export default function QuestDetailScreen() {
         </View>
 
         {room && (
-          <TouchableOpacity style={styles.roomLink}>
+          <TouchableOpacity
+            style={styles.roomLink}
+            onPress={() => navigation.navigate('RoomDetail', { roomId: room.id })}
+          >
             <Ionicons name="location-outline" size={16} color={colors.primary} />
             <Text style={styles.roomName}>{room.name}</Text>
             <Text style={styles.roomAddress}>{room.address}</Text>
@@ -135,7 +143,6 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     position: 'absolute',
-    top: 50,
     left: spacing.md,
     width: 40,
     height: 40,

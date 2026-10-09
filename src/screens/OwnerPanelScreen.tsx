@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +41,7 @@ const RIGHTS_LIST: {
 
 export default function OwnerPanelScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { getQuestsByRoom } = useQuests();
 
@@ -133,7 +135,7 @@ export default function OwnerPanelScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -427,7 +429,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     padding: spacing.md,
-    paddingTop: spacing.lg + 20,
     ...shadows.header,
   },
   headerTitle: { ...typography.h3 },

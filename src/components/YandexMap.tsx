@@ -9,10 +9,6 @@ import {
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { QuestRoom } from '../types';
 
-const API_KEY = process.env.EXPO_PUBLIC_YANDEX_MAPS_API_KEY ?? '';
-const IS_KEY_SET =
-  API_KEY.length > 0 && API_KEY !== 'YOUR_YANDEX_MAPS_API_KEY';
-
 // Дефолтный центр карты (Москва).
 const DEFAULT_CENTER: [number, number] = [55.7558, 37.6173];
 const DEFAULT_ZOOM = 10;
@@ -31,23 +27,34 @@ interface YandexMapProps {
   style?: StyleProp<ViewStyle>;
 }
 
-// Набор дефолтных разрешённых имён Placemark. Цвет задаётся через iconColor.
+// Карта на OpenStreetMap (Leaflet). Работает без ключей и API-регистрации,
+// живёт внутри WebView и не тянет тяжёлый JS-бандл Яндекс.Карт.
 function buildHtml(): string {
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; }
+  html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; background: #11161D; }
+  /* Тёмная тема тайлов OSM */
+  .leaflet-tile { filter: brightness(0.68) invert(1) hue-rotate(180deg) saturate(0.55) contrast(0.95); }
+  .room-marker { background: #20E3C2; border: 3px solid #fff; border-radius: 50%; width: 18px; height: 18px; box-shadow: 0 2px 6px rgba(0,0,0,.45); }
+  .user-dot { background: #3D7BFF; border: 3px solid #fff; border-radius: 50%; width: 16px; height: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.45); }
+  .leaflet-tooltip { background: #1b2430; border: 1px solid #2b3648; color: #E6EDF5; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  .leaflet-tooltip-top:before { border-top-color: #1b2430; }
+  .leaflet-bar a { background: #1b2430; color: #E6EDF5; border-color: #2b3648; }
+  .leaflet-bar a:hover { background: #243142; }
 </style>
-<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=${API_KEY}"></script>
 </head>
 <body>
 <div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
   var map = null;
+  var layerGroup = null;
   var fitDone = false;
 
   function post(type, data) {
@@ -56,99 +63,86 @@ function buildHtml(): string {
     }
   }
 
-  window.setMarkers = function (rooms, userLocation) {
-    if (!map) return;
-    map.geoObjects.removeAll();
-
-    if (userLocation && typeof userLocation.latitude === 'number') {
-      var circle = new ymaps.Circle(
-        [[userLocation.latitude, userLocation.longitude], 120],
-        {},
-        { strokeColor: '#20E3C266', strokeWidth: 2, fillColor: '#20E3C233' }
-      );
-      var dot = new ymaps.Placemark(
-        [userLocation.latitude, userLocation.longitude],
-        {},
-        { preset: 'islands#blueCircleDotIcon' }
-      );
-      map.geoObjects.add(circle);
-      map.geoObjects.add(dot);
-    }
-
-    (rooms || []).forEach(function (room) {
-      var marker = new ymaps.Placemark(
-        [room.latitude, room.longitude],
-        { hintContent: room.name },
-        { preset: 'islands#circleIcon', iconColor: '#20E3C2' }
-      );
-      marker.events.add('click', function () {
-        post('roomPress', { roomId: room.id });
-      });
-      map.geoObjects.add(marker);
-    });
-    if (!fitDone && map.geoObjects.getBounds && rooms.length > 0) {
-      fitDone = true;
-      fitBounds(rooms);
-    }
-  };
-
   function fitBounds(rooms) {
-    if (!map) return;
+    if (!map || !rooms.length) return;
     if (rooms.length === 1) {
-      map.setCenter([rooms[0].latitude, rooms[0].longitude], 13);
+      map.setView([rooms[0].latitude, rooms[0].longitude], 13);
       return;
     }
     var minLat = Infinity, maxLat = -Infinity;
     var minLng = Infinity, maxLng = -Infinity;
-    (rooms || []).forEach(function (r) {
+    rooms.forEach(function (r) {
       if (r.latitude < minLat) minLat = r.latitude;
       if (r.latitude > maxLat) maxLat = r.latitude;
       if (r.longitude < minLng) minLng = r.longitude;
       if (r.longitude > maxLng) maxLng = r.longitude;
     });
-    // Квесты разбросаны по нескольким городам — не приближаемся к стране целиком,
-    // а показываем Москву как дефолтный стартовый вид.
+    // Квесты разбросаны по нескольким городам — показываем стартовый вид.
     if (maxLat - minLat + maxLng - minLng > 20) {
-      map.setCenter([55.7558, 37.6173], 10);
+      map.setView([55.7558, 37.6173], 10);
       return;
     }
-    var bounds = map.geoObjects.getBounds();
-    if (bounds) {
-      map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
-    }
+    map.fitBounds([[minLat, minLng], [maxLat, maxLng]], { padding: [32, 32], maxZoom: 14 });
   }
 
-  window.setCenter = function (lat, lng, zoom) {
+  window.setMarkers = function (rooms, userLocation) {
     if (!map) return;
-    if (map.geoObjects.getLength() > 0 && lat > 0) {
-      map.setCenter([lat, lng], zoom || 10, { duration: 500 });
+    if (layerGroup) layerGroup.remove();
+    layerGroup = L.layerGroup().addTo(map);
+
+    if (userLocation && typeof userLocation.latitude === 'number') {
+      L.circle([userLocation.latitude, userLocation.longitude], {
+        radius: 120,
+        color: '#3D7BFF',
+        weight: 1,
+        fillColor: '#3D7BFF',
+        fillOpacity: 0.18,
+      }).addTo(layerGroup);
+      L.marker([userLocation.latitude, userLocation.longitude], {
+        icon: L.divIcon({ className: '', iconSize: [16, 16], iconAnchor: [8, 8], html: '<div class="user-dot"></div>' }),
+      }).addTo(layerGroup);
+    }
+
+    (rooms || []).forEach(function (room) {
+      var marker = L.marker([room.latitude, room.longitude], {
+        icon: L.divIcon({ className: '', iconSize: [18, 18], iconAnchor: [9, 9], html: '<div class="room-marker"></div>' }),
+      });
+      marker.bindTooltip(room.name, { direction: 'top', offset: [0, -12] });
+      marker.on('click', function () {
+        post('roomPress', { roomId: room.id });
+      });
+      marker.addTo(layerGroup);
+    });
+
+    if (rooms.length && !fitDone) {
+      fitDone = true;
+      setTimeout(function () { fitBounds(rooms); }, 60);
     }
   };
 
-  window.initMap = function () {
-    map = new ymaps.Map(document.getElementById('map'), {
-      center: [55.7558, 37.6173],
-      zoom: 10,
-      controls: ['zoomControl', 'geolocationControl', 'fullscreenControl'],
-    });
-    map.events.add('click', function () {
-      map.balloon.close();
-    });
+  window.setCenter = function (lat, lng, zoom) {
+    if (!map) return;
+    map.flyTo([lat, lng], zoom || 10, { duration: 0.6 });
+  };
 
-    // После построения сетки карты корректируем размер, чтобы карта
-    // корректно отрисовалась внутри WebView.
-    map.events.once('boundschange', function () {
-      setTimeout(function () {
-        try { map.container.fitToViewport(); } catch (e) { /* noop */ }
-      }, 250);
-    });
+  window.initMap = function () {
+    map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false,
+    }).setView([55.7558, 37.6173], 10);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      tileSize: 256,
+      subdomains: 'abc',
+    }).addTo(map);
 
     post('ready', null);
   };
 
-  ymaps.ready(function () {
-    window.initMap();
-  });
+  window.initMap();
 })();
 </script>
 </body>
@@ -213,10 +207,10 @@ export default function YandexMap({
 
   return (
     <View style={[styles.container, style]}>
-      {IS_KEY_SET && !loadFailed ? (
+      {!loadFailed ? (
         <WebView
           ref={webViewRef}
-          source={{ html: buildHtml(), baseUrl: 'https://api-maps.yandex.ru' }}
+          source={{ html: buildHtml(), baseUrl: 'https://unpkg.com' }}
           style={styles.webview}
           javaScriptEnabled
           domStorageEnabled
@@ -231,13 +225,10 @@ export default function YandexMap({
         />
       ) : (
         <View style={styles.noKey}>
-          <Text style={styles.noKeyTitle}>
-            {loadFailed ? 'Не удалось загрузить карту' : 'Карта недоступна'}
-          </Text>
+          <Text style={styles.noKeyTitle}>Не удалось загрузить карту</Text>
           <Text style={styles.noKeyText}>
-            {loadFailed
-              ? 'Похоже, ключ не подходит для отрисовки карт. Создайте в консоли Яндекса новый ключ и включите сервис «Maps JS API», затем обновите EXPO_PUBLIC_YANDEX_MAPS_API_KEY в .env и перезапустите expo start.'
-              : `Укажите ключ Яндекс Карт в файле .env:{'\n'}EXPO_PUBLIC_YANDEX_MAPS_API_KEY=ваш_ключ{'\n\n'}Ключ бесплатно выдаётся на developer.tech.yandex.ru.`}
+            Проверьте подключение к интернету: карта использует открытые тайлы
+            OpenStreetMap и листовые стили Leaflet.
           </Text>
         </View>
       )}

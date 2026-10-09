@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, shadows } from '../theme';
@@ -24,6 +25,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function BookingScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<Route>();
   const { quests } = useQuests();
   const { user } = useAuth();
@@ -85,7 +87,7 @@ export default function BookingScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -209,7 +211,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     padding: spacing.md,
-    paddingTop: spacing.lg + 20,
     ...shadows.header,
   },
   headerTitle: { ...typography.h2 },

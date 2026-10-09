@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography, radius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
@@ -19,6 +20,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { profile, user, signOut, isEmployee, role } = useAuth();
 
   const handleSignOut = () => {
@@ -30,7 +32,7 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.headerTitle}>Профиль</Text>
       </View>
 
@@ -92,7 +94,6 @@ const styles = StyleSheet.create({
   headerBar: {
     backgroundColor: colors.surface,
     padding: spacing.md,
-    paddingTop: spacing.lg + 20,
     ...shadows.header,
   },
   headerTitle: { ...typography.h2, color: colors.text },

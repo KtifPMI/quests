@@ -10,6 +10,7 @@ import {
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, shadows } from '../theme';
 import { useQuests } from '../context/QuestContext';
@@ -22,6 +23,7 @@ const MOSCOW_CENTER = { latitude: 55.7558, longitude: 37.6173 };
 
 export default function MapScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { rooms, loadingRooms } = useQuests();
   const [center, setCenter] = useState(MOSCOW_CENTER);
   const [userLocation, setUserLocation] = useState<{
@@ -56,7 +58,7 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.headerTitle}>QuestsApp</Text>
         <Ionicons name="notifications-outline" size={24} color={colors.text} />
       </View>
@@ -106,7 +108,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     padding: spacing.md,
-    paddingTop: spacing.lg + 20,
     ...shadows.header,
   },
   headerTitle: { ...typography.h2, color: colors.primary },

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, shadows } from '../theme';
 import { useQuests } from '../context/QuestContext';
@@ -35,6 +36,7 @@ const DIFFICULTY_COLORS: Record<Quest['difficulty'], string> = {
 
 export default function QuestListScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { quests, loadingQuests } = useQuests();
   const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('Все');
@@ -80,7 +82,7 @@ export default function QuestListScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.headerTitle}>Квесты</Text>
       </View>
 
@@ -143,7 +145,6 @@ const styles = StyleSheet.create({
   headerBar: {
     backgroundColor: colors.surface,
     padding: spacing.md,
-    paddingTop: spacing.lg + 20,
     ...shadows.header,
   },
   headerTitle: { ...typography.h2, color: colors.text },

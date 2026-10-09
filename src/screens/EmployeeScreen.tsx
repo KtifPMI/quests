@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, radius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function EmployeeScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<Route>();
   const { user } = useAuth();
 
@@ -59,12 +61,12 @@ export default function EmployeeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBar}>
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Сотрудник</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Chat', { roomId: '' })}>
+        <TouchableOpacity onPress={() => navigation.navigate('Chat', { roomId: route.params.roomId })}>
           <Ionicons name="chatbubble-outline" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -146,7 +148,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     padding: spacing.md,
-    paddingTop: spacing.lg + 20,
     ...shadows.header,
   },
   headerTitle: { ...typography.h3 },

@@ -107,6 +107,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [profile?.id, role, refreshEmployment]);
 
+  function mockUserFromProfile(profile: Profile): User {
+    return {
+      id: profile.id,
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: profile.email ?? '',
+      created_at: profile.created_at,
+      updated_at: profile.updated_at ?? profile.created_at,
+      app_metadata: {},
+      user_metadata: {},
+      identities: [],
+    };
+  }
+
   async function signIn(email: string, password: string) {
     if (USE_MOCK) {
       const account = MOCK_ACCOUNTS.find(
@@ -128,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       await mockDb.upsertProfile(mockProfile);
       setProfile(mockProfile);
+      setUser(mockUserFromProfile(mockProfile));
       setRole(account.role);
       setMockLoggedIn(true);
       await refreshEmployment(mockProfile.id);
@@ -142,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (USE_MOCK) {
       // в mock-режиме регистрация сразу заходит под клиентским профилем
       const mockProfile: Profile = {
-        id: 'mock-user-id',
+        id: `mock-${Date.now()}`,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         email: email || 'demo@quests.ru',
@@ -152,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       await mockDb.upsertProfile(mockProfile);
       setProfile(mockProfile);
+      setUser(mockUserFromProfile(mockProfile));
       setRole('client');
       setEmployment([]);
       setMockLoggedIn(true);
@@ -166,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (USE_MOCK) {
       setMockLoggedIn(false);
       setProfile(null);
+      setUser(null);
       setRole(null);
       setEmployment([]);
       return;
